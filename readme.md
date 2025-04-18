@@ -37,7 +37,7 @@ Contributions are welcome!
 1. Clone the repository:
    ```bash
    git clone https://github.com/zyzer01/bg-remover.git
-   cd image-background-remover
+   cd bg-remover
    ```
 
 2. Create and activate a virtual environment:
