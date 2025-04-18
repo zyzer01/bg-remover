@@ -2,6 +2,8 @@
 
 A Flask web application for removing backgrounds from images with professional-quality results, similar to Canva's background removal tool.
 
+Contributions are welcome!
+
 ## Features
 
 - Clean, intuitive web interface with drag-and-drop functionality
