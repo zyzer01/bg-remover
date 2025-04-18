@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Background Remover</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        .upload-area {
+            border: 2px dashed #7b68ee;
+            border-radius: 10px;
+            padding: 50px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .upload-area:hover {
+            background-color: #e9ecef;
+        }
+        .upload-area input {
+            display: none;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #7b68ee;
+            margin-bottom: 15px;
+        }
+        .btn-primary {
+            background-color: #7b68ee;
+            border-color: #7b68ee;
+        }
+        .btn-primary:hover {
+            background-color: #6c5ce7;
+            border-color: #6c5ce7;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #7b68ee;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        .advanced-options {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .custom-control-label {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Background Remover</div>
+            <p class="text-muted">Remove image backgrounds with high precision</p>
+        </div>
+        
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <form action="/remove_background" method="post" enctype="multipart/form-data" id="upload-form">
+            <div class="upload-area" id="upload-area">
+                <div class="upload-icon">📁</div>
+                <h4>Upload an image</h4>
+                <p class="text-muted">Click here or drag & drop a file</p>
+                <p class="text-muted small">Supported formats: PNG, JPG, JPEG</p>
+                <input type="file" name="file" id="file-input" accept=".png,.jpg,.jpeg">
+            </div>
+            
+            <img id="preview" class="preview-image" src="#" alt="Preview">
+            
+            <div class="text-center mb-3">
+                <button type="button" class="btn btn-link" id="toggle-advanced">
+                    <span id="advanced-text">Show advanced options</span> <span id="advanced-icon">▼</span>
+                </button>
+            </div>
+            
+            <div class="advanced-options" id="advanced-options">
+                <h5>Edge Quality Enhancement</h5>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="alpha-matting" name="alpha_matting">
+                        <label class="form-check-label" for="alpha-matting">
+                            Use Alpha Matting (improves edge quality but slower)
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="alpha-matting-options" style="display: none;">
+                    <div class="mb-3">
+                        <label for="foreground-threshold" class="form-label">Foreground Threshold (higher value = more foreground)</label>
+                        <input type="range" class="form-range" min="0" max="255" value="240" id="foreground-threshold" name="foreground_threshold">
+                        <div class="d-flex justify-content-between">
+                            <span>0</span>
+                            <span>255</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="background-threshold" class="form-label">Background Threshold (lower value = less background)</label>
+                        <input type="range" class="form-range" min="0" max="255" value="10" id="background-threshold" name="background_threshold">
+                        <div class="d-flex justify-content-between">
+                            <span>0</span>
+                            <span>255</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="erode-size" class="form-label">Erode Size (affects edge thickness)</label>
+                        <input type="range" class="form-range" min="0" max="30" value="10" id="erode-size" name="erode_size">
+                        <div class="d-flex justify-content-between">
+                            <span>0</span>
+                            <span>30</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Edge Post-Processing</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="post_process" id="post-none" value="none" checked>
+                        <label class="form-check-label" for="post-none">
+                            None
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="post_process" id="post-sharpen" value="sharpen">
+                        <label class="form-check-label" for="post-sharpen">
+                            Sharpen edges
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="post_process" id="post-smooth" value="smooth">
+                        <label class="form-check-label" for="post-smooth">
+                            Smooth edges (reduces jaggedness)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="post_process" id="post-enhance" value="enhance">
+                        <label class="form-check-label" for="post-enhance">
+                            Enhance edges (increases contrast)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary" type="submit" id="submit-btn" disabled>Remove Background</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const preview = document.getElementById('preview');
+        const submitBtn = document.getElementById('submit-btn');
+        const toggleAdvanced = document.getElementById('toggle-advanced');
+        const advancedOptions = document.getElementById('advanced-options');
+        const advancedText = document.getElementById('advanced-text');
+        const advancedIcon = document.getElementById('advanced-icon');
+        const alphaMatting = document.getElementById('alpha-matting');
+        const alphaMattingOptions = document.getElementById('alpha-matting-options');
+        
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#e9ecef';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.backgroundColor = '#f8f9fa';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#f8f9fa';
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect() {
+            if (fileInput.files.length) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    submitBtn.disabled = false;
+                }
+                
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        toggleAdvanced.addEventListener('click', () => {
+            if (advancedOptions.style.display === 'none' || advancedOptions.style.display === '') {
+                advancedOptions.style.display = 'block';
+                advancedText.textContent = 'Hide advanced options';
+                advancedIcon.textContent = '▲';
+            } else {
+                advancedOptions.style.display = 'none';
+                advancedText.textContent = 'Show advanced options';
+                advancedIcon.textContent = '▼';
+            }
+        });
+        
+        alphaMatting.addEventListener('change', () => {
+            if (alphaMatting.checked) {
+                alphaMattingOptions.style.display = 'block';
+            } else {
+                alphaMattingOptions.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
